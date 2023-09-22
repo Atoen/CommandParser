@@ -1,18 +1,26 @@
-﻿using Parser.Definitions;
+﻿using Parser.Descriptors;
 
 namespace ModuleDefinitions.Modules;
 
 [Name("Test")]
 public class TestModule : ModuleBase
 {
-    [Command, ExtraArgs(ExtraArgsHandleMode.Error)]
-    public async Task O(string a, int b = 3)
+    [Command("Calc"), ExtraArgs(ExtraArgsHandleMode.Error)]
+    public async Task Calculate(double num1, char op, double num2)
     {
-        Console.WriteLine($"a: {a}");
+        var result = op switch
+        {
+            '+' => num1 + num2,
+            '-' => num1 - num2,
+            '*' => num1 * num2,
+            '/' => num1 / num2,
+            '^' => Math.Pow(num1, num2),
+            _ => throw new ArgumentOutOfRangeException(nameof(op))
+        };
 
-        // throw new Exception();
+        Console.WriteLine(result);
     }
-    
+
     [Command, ExtraArgs(ExtraArgsHandleMode.Error)]
     public async Task A()
     {

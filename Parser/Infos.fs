@@ -2,11 +2,10 @@
 
 open System
 open System.Reflection
-open Parser.Definitions
+open Parser.Descriptors
 
 type ParameterReadMode =
     | Parse
-    | SpanParse
     | Convert
 
 type ModuleInfo = {

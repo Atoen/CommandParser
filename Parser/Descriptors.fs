@@ -1,4 +1,4 @@
-﻿namespace Parser.Definitions
+﻿namespace Parser.Descriptors
 
 open System
 

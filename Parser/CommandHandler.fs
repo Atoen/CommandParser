@@ -1,37 +1,46 @@
 ﻿namespace Parser.Handler
 
 open System
+open System.Collections.Concurrent
+open System.Reflection
 open System.Threading.Tasks
 open Microsoft.Extensions.DependencyInjection
-open Parser.Definitions
+open Microsoft.FSharp.Collections
+open Parser.Descriptors
 open Parser.DependencyInjection
 open Parser.Infos
 
 type CommandHandler(helper: CommandHelper, provider: IServiceProvider) =
     let commands = helper.Modules |> Array.collect (fun m -> m.Commands)
+    let parseMethods = ConcurrentDictionary<Type, MethodInfo>()
+    let getParseMethod (parameter: ParameterInfo) =
+        let paramType = parameter.Type
+        match paramType |> parseMethods.TryGetValue with
+        | true, method ->
+            method
+        | _ ->
+            let method = paramType.GetMethod("Parse", [|typeof<string>; typeof<IFormatProvider>|])
+            parseMethods[paramType] <- method
+            method
     
-    let readArg (arg: string) (parameterInfo: ParameterInfo) : Result<obj, string> =
+    let readArg (arg: string) (parameterInfo: ParameterInfo) =
         try
             match parameterInfo.ReadMode with
-            | Parse -> failwith "todo"
-            | SpanParse -> failwith "todo"
+            | Parse -> Ok ((getParseMethod parameterInfo).Invoke(null, [|arg; helper.Culture|]))
             | Convert -> Ok (Convert.ChangeType(arg, parameterInfo.Type, helper.Culture))
         with
         | e -> Error $"Couldn't parse {parameterInfo.Name}: expected type {parameterInfo.Type} (input: '{arg}')"
+        
+    let (|LessThan|_|) x value = if value < x then Some() else None
+    let (|MoreThan|_|) x value = if value > x then Some() else None
     
     let validateArgCount (command: CommandInfo) (args: string array) =
-        if command.Parameters.Length = 0 then
-            match command.ExtraArgsHandleMode with
-            | ExtraArgsHandleMode.Error -> Error "Command was invoked with too many parameters."
-            | _ -> Ok ()
-        
-        elif args.Length < command.RequiredParamCount then Error "Command was invoked with too few parameters."
-        
-        elif command.ExtraArgsHandleMode = ExtraArgsHandleMode.Error && not (command.Parameters |> Array.last).Remainder &&
-             args.Length > command.Parameters.Length
-            then Error "Command was invoked with too many parameters."
-            
-        else Ok ()
+        match command.Parameters.Length, args.Length, command.ExtraArgsHandleMode with
+        | 0, MoreThan 0, ExtraArgsHandleMode.Error -> Error "Command was invoked with too many parameters."
+        | _, LessThan command.RequiredParamCount, _ -> Error "Command was invoked with too few parameters."
+        | _, MoreThan command.Parameters.Length, ExtraArgsHandleMode.Error
+            when (command.Parameters |> Array.last).Remainder |> not -> Error "Command was invoked with too many parameters."
+        | _ -> Ok ()
     
     let parseArgs (command: CommandInfo) (args: string array) : Result<obj array, string> =
         match args |> validateArgCount command with
@@ -43,11 +52,13 @@ type CommandHandler(helper: CommandHelper, provider: IServiceProvider) =
             let rec setDefaultParams i array: obj array =
                 if i >= parameterCount then array
                 else
-                    match command.Parameters[i].DefaultValue with
-                    | None -> failwith "todo"
+                    let parameter = command.Parameters[i]
+                    match parameter.DefaultValue with
+                    | None -> failwith $"Failed to invoke %s{command.Name}: parameter %s{parameter.Name} \
+                                         is missing it's default value"
                     | Some value ->
                         array[i] <- value
-                        setDefaultParams (i + 1) array
+                        array |> setDefaultParams (i + 1)
             
             let rec tryParse i array : Result<obj array, string> =
                 if i >= args.Length || i >= parameterCount then Ok array
@@ -55,16 +66,16 @@ type CommandHandler(helper: CommandHelper, provider: IServiceProvider) =
                     let parameter = command.Parameters[i]
                     let toRead =
                         match parameter.Remainder with
-                        | true -> String.concat " " (Array.skip i args)
+                        | true -> args |> Array.skip i |> String.concat " "
                         | false -> args[i]
 
                     match parameter |> readArg toRead with
                     | Error e -> Error e
                     | Ok parsed -> 
                         array[i] <- parsed
-                        tryParse (i + 1) array
+                        array |> tryParse (i + 1)
 
-            match tryParse 0 parsedArgs with
+            match parsedArgs |> tryParse 0 with
             | Error e -> Error e
             | Ok parsed -> Ok (parsed |> setDefaultParams args.Length)
     
@@ -75,10 +86,14 @@ type CommandHandler(helper: CommandHelper, provider: IServiceProvider) =
             async {
                 try
                     let instance = ActivatorUtilities.CreateInstance(provider, command.Module.Type)
-                    let! result = command.Method.Invoke(instance, args) :?> Task |> Async.AwaitTask
-                    return Ok result
+                    do! command.Method.Invoke(instance, args) :?> Task |> Async.AwaitTask
+                    return Ok ()
                 with
-                | e -> return Error $"{e.GetType()}: {e.Message}"
+                | e ->
+                return Error (
+                    match e.InnerException with
+                    | null -> $"{e.GetType()}: {e.Message}"
+                    | inner -> $"{inner.GetType()}: {inner.Message}")                
             } |> Async.StartAsTask
         
     member this.HandleCommand (command: string) : Task<Result<unit, string>> =

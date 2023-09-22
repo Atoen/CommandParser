@@ -18,5 +18,19 @@ while (true)
     if (input is null) return;
     
     var result = await handler.HandleCommand(input);
-    Console.WriteLine(result.IsError ? result.ErrorValue : "Ok");
+    if (result.IsOk)
+    {
+        WriteResult("Ok", ConsoleColor.Green);
+    }
+    else
+    {
+        WriteResult(result.ErrorValue, ConsoleColor.Red);
+    }
+}
+
+void WriteResult(string result, ConsoleColor color)
+{
+    Console.ForegroundColor = color;
+    Console.WriteLine(result);
+    Console.ResetColor();
 }

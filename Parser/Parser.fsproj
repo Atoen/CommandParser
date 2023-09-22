@@ -10,7 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="Attributes.fs" />
+      <Compile Include="Descriptors.fs" />
       <Compile Include="Infos.fs" />
       <Compile Include="Builder.fs" />
       <Compile Include="DependencyInjection.fs" />

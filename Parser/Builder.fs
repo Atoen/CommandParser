@@ -3,18 +3,16 @@
 open System
 open System.Reflection
 open System.Threading.Tasks
-open Parser.Definitions
+open Parser.Descriptors
 open Parser.Infos
 
-let (|ImplementsInterface|_|) name (paramType: Type) = if paramType.GetInterface(name) <> null then Some() else None
+let (|ImplementsInterface|_|) name (paramType: Type) = if paramType.GetInterface(name) <> null then Some () else None
 
 let getReadMode (parameterType: Type) =
-    
     if parameterType = typeof<string> then Some Convert else
     match parameterType with
-    | ImplementsInterface "ISpanParsable`1" -> Some SpanParse
-    | ImplementsInterface "IParsable`1" -> Some Parse
     | ImplementsInterface "IConvertible" -> Some Convert
+    | ImplementsInterface "IParsable`1" -> Some Parse
     | _ -> None
 
 let getModuleTypes (baseType: Type) =
