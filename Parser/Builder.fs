@@ -39,11 +39,11 @@ let createParameterInfo (parameter: Reflection.ParameterInfo) (command: CommandI
     if remainder &&
         parameter.ParameterType <> typeof<string> && parameter.ParameterType <> typeof<string Option>
         then failwithf $"Remainder attribute can only be used on string type parameters: \
-                         Module %s{command.Module.Name}, Command %s{command.Name}, Parameter %s{name}"
+                         Module %s{command.Module.Name}, Command %s{command.Name}, Parameter %s{name}."
         
     if remainder && parameter.Position <> commandParamCount - 1
         then failwithf $"Remainder attribute can only be used on the last parameter: \
-                        Module %s{command.Module.Name}, Command %s{command.Name}, Parameter %s{name}"
+                        Module %s{command.Module.Name}, Command %s{command.Name}, Parameter %s{name}."
     
     let defaultValue =
        match parameter.HasDefaultValue, parameter.DefaultValue with
@@ -52,7 +52,7 @@ let createParameterInfo (parameter: Reflection.ParameterInfo) (command: CommandI
        
     let readMode =
         match getReadMode parameter.ParameterType with
-        | None -> failwith "Parameter needs to implement IParsable or IConvertible interface"
+        | None -> failwith "Parameter needs to implement IParsable or IConvertible interface."
         | Some mode -> mode
     
     {Name = name; Summary = summary; Command = command; Remainder = remainder; ReadMode = readMode 
@@ -66,7 +66,7 @@ let createCommandInfo (method: MethodInfo) (parentModule: ModuleInfo) =
     let extraArgsMode = attributes |> getAttributeValue<ExtraArgsAttribute, _> ExtraArgsHandleMode.Ignore
     
     if method.ReturnType <> typeof<Task> then failwithf $"Command return type must be %s{typeof<Task>.FullName}: \
-                                                          Module %s{parentModule.Name}, Command %s{name}"
+                                                          Module %s{parentModule.Name}, Command %s{name}."
    
     let commandInfo = { Name = name; Summary = summary; Parameters = [||]; Method = method
                         Module = parentModule; RequiredParamCount = 0; ExtraArgsHandleMode = extraArgsMode }
