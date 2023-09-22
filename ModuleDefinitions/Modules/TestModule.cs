@@ -1,11 +1,17 @@
-﻿using Parser.Descriptors;
+﻿using Parser;
+using Parser.DependencyInjection;
+using Parser.Descriptors;
 
 namespace ModuleDefinitions.Modules;
 
 [Name("Test")]
 public class TestModule : ModuleBase
 {
-    [Command("Calc"), ExtraArgs(ExtraArgsHandleMode.Error)]
+    private readonly CommandHelper _helper;
+
+    public TestModule(CommandHelper helper) => _helper = helper;
+
+    [Command, Alias("Calc", "C", "C")]
     public async Task Calculate(double num1, char op, double num2)
     {
         var result = op switch
@@ -18,12 +24,15 @@ public class TestModule : ModuleBase
             _ => throw new ArgumentOutOfRangeException(nameof(op))
         };
 
-        Console.WriteLine(result);
+        Console.WriteLine(result.ToString(_helper.Culture));
     }
 
-    [Command, ExtraArgs(ExtraArgsHandleMode.Error)]
-    public async Task A()
+    [Command, Alias("H", "?"), ExtraArgs(ExtraArgsHandleMode.Error)]
+    public async Task Help()
     {
-        Console.WriteLine($"a: f");
+        foreach (var commandInfo in _helper.Modules.SelectMany(x => x.Commands))
+        {
+            Console.WriteLine(commandInfo.Name);
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using ModuleDefinitions.Modules;
 using Parser.Handler;
 using Parser.DependencyInjection;
@@ -16,15 +17,18 @@ while (true)
 {
     var input = Console.ReadLine();
     if (input is null) return;
+
+    var start = Stopwatch.GetTimestamp();
     
     var result = await handler.HandleCommand(input);
+    var elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     if (result.IsOk)
     {
-        WriteResult("Ok", ConsoleColor.Green);
+        WriteResult($"Ok ({elapsed:F2}ms)", ConsoleColor.Green);
     }
     else
     {
-        WriteResult(result.ErrorValue, ConsoleColor.Red);
+        WriteResult($"{result.ErrorValue} ({elapsed:F2}ms)", ConsoleColor.Red);
     }
 }
 

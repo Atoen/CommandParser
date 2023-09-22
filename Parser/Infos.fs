@@ -18,6 +18,8 @@ type ModuleInfo = {
 and CommandInfo = {
     Module: ModuleInfo
     Name: string
+    Aliases: string array
+    InvokeNames: string array
     Summary: string
     Method: MethodInfo
     RequiredParamCount: int

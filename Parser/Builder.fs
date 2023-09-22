@@ -19,13 +19,13 @@ let getModuleTypes (baseType: Type) =
     baseType.Assembly.GetExportedTypes()
     |> Array.filter (fun t -> not t.IsAbstract && baseType.IsAssignableFrom t)
     
-let getAttribute<'T, 'U when 'T :> DescriptorAttribute<'U>> (array: Attribute array) =
-    match Array.tryFind (fun a -> a.GetType() = typeof<'T>) array with
+let getAttribute<'T, 'U when 'T :> DescriptorAttribute<'U>> (attributes: Attribute array) =
+    match Array.tryFind (fun a -> a.GetType() = typeof<'T>) attributes with
     | Some (:? 'T as attribute) -> Some attribute
     | _ -> None
 
-let getAttributeValue<'T, 'U when 'T :> DescriptorAttribute<'U>> (fallback: 'U) (array: Attribute array) =
-    match getAttribute<'T, 'U> array with
+let getAttributeValue<'T, 'U when 'T :> DescriptorAttribute<'U>> (fallback: 'U) (attributes: Attribute array) =
+    match getAttribute<'T, 'U> attributes with
     | Some attribute -> Option.defaultValue fallback attribute.Value
     | None -> fallback
 
@@ -55,21 +55,24 @@ let createParameterInfo (parameter: Reflection.ParameterInfo) (command: CommandI
         | None -> failwith "Parameter needs to implement IParsable or IConvertible interface."
         | Some mode -> mode
     
-    {Name = name; Summary = summary; Command = command; Remainder = remainder; ReadMode = readMode 
-     Optional = parameter.IsOptional; Type = parameter.ParameterType; DefaultValue = defaultValue }
+    { Name = name; Summary = summary; Command = command; Remainder = remainder; ReadMode = readMode 
+      Optional = parameter.IsOptional; Type = parameter.ParameterType; DefaultValue = defaultValue }
                     
 let createCommandInfo (method: MethodInfo) (parentModule: ModuleInfo) =
     let attributes = Array.ofSeq (method.GetCustomAttributes())
    
     let name = attributes |> getAttributeValue<CommandAttribute, _>  method.Name
     let summary = attributes |> getAttributeValue<SummaryAttribute, _>  String.Empty
+    let aliases = attributes |> getAttributeValue<AliasAttribute, _> [||]
     let extraArgsMode = attributes |> getAttributeValue<ExtraArgsAttribute, _> ExtraArgsHandleMode.Ignore
     
     if method.ReturnType <> typeof<Task> then failwithf $"Command return type must be %s{typeof<Task>.FullName}: \
                                                           Module %s{parentModule.Name}, Command %s{name}."
    
     let commandInfo = { Name = name; Summary = summary; Parameters = [||]; Method = method
-                        Module = parentModule; RequiredParamCount = 0; ExtraArgsHandleMode = extraArgsMode }
+                        Aliases = aliases; Module = parentModule; RequiredParamCount = 0;
+                        ExtraArgsHandleMode = extraArgsMode; InvokeNames = aliases |> Array.append [|name|] }
+    
     let parameters = method.GetParameters()
     let paramCount = parameters.Length
         

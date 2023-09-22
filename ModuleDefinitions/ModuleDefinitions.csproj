@@ -16,5 +16,4 @@
       <ProjectReference Include="..\Parser\Parser.fsproj" />
     </ItemGroup>
 
-
 </Project>

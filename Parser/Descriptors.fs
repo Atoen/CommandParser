@@ -6,7 +6,7 @@ open System
 type ModuleBase() = class end
 
 [<AllowNullLiteral>]
-type DescriptorAttribute<'T>(value: Option<'T>) =
+type DescriptorAttribute<'T>(value: 'T Option) =
     inherit Attribute()
     member this.Value with get() = value
     new () = DescriptorAttribute<'T> None
@@ -22,6 +22,9 @@ type NameAttribute(value) = inherit DescriptorAttribute<string>(Some value)
 
 [<AttributeUsage(AttributeTargets.Class ||| AttributeTargets.Method ||| AttributeTargets.Parameter)>]
 type SummaryAttribute(value) = inherit DescriptorAttribute<string>(Some value)
+
+[<AttributeUsage(AttributeTargets.Method)>]
+type AliasAttribute([<ParamArray>] value) = inherit DescriptorAttribute<string array>(Some value)
 
 type ExtraArgsHandleMode =
     | Ignore = 0
