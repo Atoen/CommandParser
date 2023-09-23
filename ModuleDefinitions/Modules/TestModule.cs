@@ -1,18 +1,17 @@
-﻿using Parser;
-using Parser.DependencyInjection;
+﻿using Parser.DependencyInjection;
 using Parser.Descriptors;
 
 namespace ModuleDefinitions.Modules;
 
-[Name("Test")]
+[Name("Test"), Summary("Testing module")]
 public class TestModule : ModuleBase
 {
     private readonly CommandHelper _helper;
 
     public TestModule(CommandHelper helper) => _helper = helper;
 
-    [Command, Alias("Calc", "C", "C")]
-    public async Task Calculate(double num1, char op, double num2)
+    [Command, Alias("Calc", "C")]
+    public async Task Calculate(double num1, [Summary("Operator")] char op, double num2)
     {
         var result = op switch
         {
@@ -27,12 +26,32 @@ public class TestModule : ModuleBase
         Console.WriteLine(result.ToString(_helper.Culture));
     }
 
-    [Command, Alias("H", "?"), ExtraArgs(ExtraArgsHandleMode.Error)]
-    public async Task Help()
+    [Command, Alias("H", "?"), Summary("Display help for specific command")]
+    public async Task Help(string? command = null)
     {
-        foreach (var commandInfo in _helper.Modules.SelectMany(x => x.Commands))
+        if (command is not null)
         {
-            Console.WriteLine(commandInfo.Name);
+            var commandAlias = _helper.InvocableAliases.FirstOrDefault(x => x.Alias == command);
+            if (commandAlias is null)
+            {
+                Console.WriteLine($"Couldn't find command like {command}");
+                return;
+            }
+
+            Console.WriteLine(commandAlias.Command);
+            return;
         }
+
+        foreach (var module in _helper.Modules)
+        {
+            Console.WriteLine(module);
+        }
+    }
+
+    [Command, Alias("B")]
+    public async Task Binary(long num)
+    {
+        var binary = Convert.ToString(num, 2);
+        Console.WriteLine(binary);
     }
 }

@@ -12,28 +12,8 @@ type CommandAlias = {
     Alias: string
 }
 
-type CommandHelper(modules) =
-    
-    let invocableAliases =
-        modules
-        |> Array.collect (fun m -> m.Commands)
-        |> Array.map (fun c -> c.InvokeNames |> Array.map (fun a -> { Command = c; Alias = a }))
-        |> Array.concat
-           
-    do
-        invocableAliases
-        |> Array.groupBy (fun ca -> ca.Alias)
-        |> Array.filter (fun (_, group) -> group.Length > 1)
-        |> Array.iter (fun (alias, group) ->
-            Console.ForegroundColor <- ConsoleColor.Yellow 
-            eprintfn $"Warning: Duplicate alias '%s{alias}' found:"
-            group |> Array.iter (fun c ->
-                let command = c.Command
-                eprintfn $"\tmodule: '%s{command.Module.Name}' command: '%s{command.Name}'"))
-        
-        Console.ResetColor()
-
-            
+type CommandHelper(modules, invocableAliases) =
+                
     member this.InvocableAliases
         with get() = invocableAliases
         
@@ -49,4 +29,25 @@ type IServiceCollectionExtension =
         let modules = getModuleTypes moduleType |> Array.map createModuleInfo
         modules |> Array.iter (fun m -> serviceCollection.AddTransient m.Type |> ignore)
         
-        serviceCollection.AddSingleton(CommandHelper modules)
+        let invocableAliases =
+            modules
+            |> Array.collect (fun m -> m.Commands)
+            |> Array.map (fun c -> c.InvokeNames |> Array.map (fun a -> { Command = c; Alias = a }))
+            |> Array.concat
+        
+        let duplicateAliases =
+            invocableAliases
+            |> Array.groupBy (fun ca -> ca.Alias)
+            |> Array.filter (fun (_, group) -> group.Length > 1)
+            
+        if duplicateAliases.Length > 0 then
+            Console.ForegroundColor <- ConsoleColor.Yellow
+            duplicateAliases |> Array.iter (fun (alias, group) ->
+                printfn $"Warning: Duplicate alias '%s{alias}' found:"
+                group |> Array.iter (fun c ->
+                let command = c.Command
+                printfn $"\tmodule: '%s{command.Module.Name}' command: '%s{command.Name}'"))
+            
+            Console.ResetColor()
+        
+        serviceCollection.AddSingleton(CommandHelper(modules, invocableAliases))

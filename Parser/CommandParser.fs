@@ -44,7 +44,7 @@ module internal CommandParser =
     let parseArgs (command: CommandInfo)  (culture: CultureInfo) (args: string array) : Result<obj array, string> =
         match args |> validateArgCount command with
         | Error e -> Error e
-        | _ ->
+        | Ok _ ->
             let parameterCount = command.Parameters.Length
             let parsedArgs = Array.zeroCreate parameterCount
             

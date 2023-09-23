@@ -56,7 +56,7 @@ let createParameterInfo (parameter: Reflection.ParameterInfo) (command: CommandI
         | Some mode -> mode
     
     { Name = name; Summary = summary; Command = command; Remainder = remainder; ReadMode = readMode 
-      Optional = parameter.IsOptional; Type = parameter.ParameterType; DefaultValue = defaultValue }
+      Type = parameter.ParameterType; DefaultValue = defaultValue }
                     
 let createCommandInfo (method: MethodInfo) (parentModule: ModuleInfo) =
     let attributes = Array.ofSeq (method.GetCustomAttributes())
