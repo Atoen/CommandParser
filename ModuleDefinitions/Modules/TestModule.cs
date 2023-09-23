@@ -27,14 +27,15 @@ public class TestModule : ModuleBase
     }
 
     [Command, Alias("H", "?"), Summary("Display help for specific command")]
-    public async Task Help(string? command = null)
+    public async Task Help(string? name = null)
     {
-        if (command is not null)
+        if (name is not null)
         {
-            var commandAlias = _helper.InvocableAliases.FirstOrDefault(x => x.Alias == command);
-            if (commandAlias is null)
+            var success = _helper.TryFindCommand(name, out var commandAlias);
+            
+            if (!success)
             {
-                Console.WriteLine($"Couldn't find command like {command}");
+                Console.WriteLine($"Couldn't find command like {name}");
                 return;
             }
 

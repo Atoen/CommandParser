@@ -1,8 +1,10 @@
 ﻿namespace Parser.DependencyInjection
 
 open System
+open System.Diagnostics.CodeAnalysis
 open System.Runtime.CompilerServices
 open System.Globalization
+open System.Runtime.InteropServices
 open Microsoft.Extensions.DependencyInjection
 open Parser.Infos
 open Parser.Builder
@@ -21,6 +23,18 @@ type CommandHelper(modules, invocableAliases) =
         with get() = modules
         
     member val Culture = CultureInfo.InvariantCulture with get, set
+    member val Comparison = StringComparison.InvariantCultureIgnoreCase with get, set
+        
+    member this.TryFindCommand (name, [<Out; NotNullWhen(true)>] command: CommandAlias byref) =
+        let result =
+            this.InvocableAliases
+            |> Array.tryFind (fun c -> String.Compare(c.Alias, name, this.Comparison) = 0)
+            
+        match result with
+        | None -> false
+        | Some value ->
+            command <- value
+            true
         
 [<Extension>]
 type IServiceCollectionExtension =
